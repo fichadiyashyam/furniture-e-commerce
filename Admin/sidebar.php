@@ -41,6 +41,48 @@
             </a>
         </li>
         <li>
+            <a href="home_content.php"
+                class="<?php echo basename($_SERVER['PHP_SELF']) == 'home_content.php' || basename($_SERVER['PHP_SELF']) == 'add_home_content.php' || basename($_SERVER['PHP_SELF']) == 'edit_home_content.php' ? 'active' : ''; ?>">
+                <i class="fas fa-file-alt"></i> Home Content
+            </a>
+        </li>
+        <li>
+            <a href="about_content.php"
+                class="<?php echo basename($_SERVER['PHP_SELF']) == 'about_content.php' || basename($_SERVER['PHP_SELF']) == 'add_about_content.php' || basename($_SERVER['PHP_SELF']) == 'edit_about_content.php' ? 'active' : ''; ?>">
+                <i class="fas fa-address-card"></i> About Content
+            </a>
+        </li>
+        <li>
+            <a href="blogs.php"
+                class="<?php echo basename($_SERVER['PHP_SELF']) == 'blogs.php' || basename($_SERVER['PHP_SELF']) == 'add_blog.php' || basename($_SERVER['PHP_SELF']) == 'edit_blog.php' ? 'active' : ''; ?>">
+                <i class="fas fa-blog"></i> Blog Posts
+            </a>
+        </li>
+        <li>
+            <a href="blog_content.php"
+                class="<?php echo basename($_SERVER['PHP_SELF']) == 'blog_content.php' || basename($_SERVER['PHP_SELF']) == 'add_blog_content.php' || basename($_SERVER['PHP_SELF']) == 'edit_blog_content.php' ? 'active' : ''; ?>">
+                <i class="fas fa-file-invoice"></i> Blog Content
+            </a>
+        </li>
+        <li>
+            <a href="services_content.php"
+                class="<?php echo basename($_SERVER['PHP_SELF']) == 'services_content.php' || basename($_SERVER['PHP_SELF']) == 'add_services_content.php' || basename($_SERVER['PHP_SELF']) == 'edit_services_content.php' ? 'active' : ''; ?>">
+                <i class="fas fa-concierge-bell"></i> Services Content
+            </a>
+        </li>
+        <li>
+            <a href="testimonials.php"
+                class="<?php echo basename($_SERVER['PHP_SELF']) == 'testimonials.php' || basename($_SERVER['PHP_SELF']) == 'add_testimonial.php' || basename($_SERVER['PHP_SELF']) == 'edit_testimonial.php' ? 'active' : ''; ?>">
+                <i class="fas fa-comments"></i> Testimonials
+            </a>
+        </li>
+        <li>
+            <a href="team.php"
+                class="<?php echo basename($_SERVER['PHP_SELF']) == 'team.php' || basename($_SERVER['PHP_SELF']) == 'add_team.php' || basename($_SERVER['PHP_SELF']) == 'edit_team.php' ? 'active' : ''; ?>">
+                <i class="fas fa-users"></i> Our Team
+            </a>
+        </li>
+        <li>
             <a href="../index.php">
                 <i class="fas fa-sign-out-alt"></i> Back to Shop
             </a>

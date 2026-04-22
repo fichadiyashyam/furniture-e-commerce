@@ -23,48 +23,36 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>
-                                <img src="../images/person_1.jpg" alt="User" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">
-                            </td>
-                            <td>Maria Jones</td>
-                            <td>maria.jones@example.com</td>
-                            <td>Customer</td>
-                            <td><span class="status-badge status-active">Active</span></td>
-                            <td>
-                                <a href="#" class="action-icon"><i class="fas fa-eye"></i></a>
-                                <a href="#" class="action-icon"><i class="fas fa-trash"></i></a>
-                                <a href="#" class="action-icon"><i class="fas fa-edit"></i></a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <img src="../images/person_2.jpg" alt="User" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">
-                            </td>
-                            <td>John Smith</td>
-                            <td>john.smith@example.com</td>
-                            <td>Admin</td>
-                            <td><span class="status-badge status-active">Active</span></td>
-                            <td>
-                                <a href="#" class="action-icon"><i class="fas fa-eye"></i></a>
-                                <a href="#" class="action-icon"><i class="fas fa-trash"></i></a>
-                                <a href="#" class="action-icon"><i class="fas fa-edit"></i></a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <img src="../images/person_3.jpg" alt="User" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">
-                            </td>
-                            <td>Robert Doe</td>
-                            <td>robert.doe@example.com</td>
-                            <td>Customer</td>
-                            <td><span class="status-badge status-inactive">Inactive</span></td>
-                            <td>
-                                <a href="#" class="action-icon"><i class="fas fa-eye"></i></a>
-                                <a href="#" class="action-icon"><i class="fas fa-trash"></i></a>
-                                <a href="#" class="action-icon"><i class="fas fa-edit"></i></a>
-                            </td>
-                        </tr>
+                        <?php
+                        include '../config/db_config.php';
+                        $query = "SELECT * FROM users ORDER BY id DESC";
+                        $result = mysqli_query($connection, $query);
+                        if ($result && mysqli_num_rows($result) > 0) {
+                            while ($row = mysqli_fetch_assoc($result)) {
+                                $statusClass = $row['is_verified'] == 1 ? 'status-active' : 'status-inactive';
+                                $statusText = $row['is_verified'] == 1 ? 'Verified' : 'Unverified';
+                                $img = !empty($row['profile_photo']) ? '../images/' . $row['profile_photo'] : '../images/person_1.jpg'; // fallback
+                                ?>
+                                <tr>
+                                    <td>
+                                        <img src="<?php echo htmlspecialchars($img); ?>" alt="User" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">
+                                    </td>
+                                    <td class="fw-bold"><?php echo htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['email']); ?></td>
+                                    <td><span class="badge bg-secondary"><?php echo htmlspecialchars(ucfirst($row['role'])); ?></span></td>
+                                    <td><span class="status-badge <?php echo $statusClass; ?>"><?php echo $statusText; ?></span></td>
+                                    <td>
+                                        <a href="#" class="action-icon"><i class="fas fa-eye"></i></a>
+                                        <a href="#" class="action-icon"><i class="fas fa-trash"></i></a>
+                                        <a href="#" class="action-icon"><i class="fas fa-edit"></i></a>
+                                    </td>
+                                </tr>
+                                <?php
+                            }
+                        } else {
+                            echo "<tr><td colspan='6' class='text-center'>No users found.</td></tr>";
+                        }
+                        ?>
                     </tbody>
                 </table>
             </div>

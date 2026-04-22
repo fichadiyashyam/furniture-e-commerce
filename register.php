@@ -1,6 +1,14 @@
 <?php
+
+session_start();
 $page = 'register';
 include 'header.php';
+
+
+$errors = $_SESSION['register_errors'] ?? [];
+$success = $_SESSION['register_success'] ?? '';
+$old = $_SESSION['register_old'] ?? [];
+unset($_SESSION['register_errors'], $_SESSION['register_success'], $_SESSION['register_old']);
 ?>
 <script src="js/validation.js"></script>
 <!-- Start Hero Section -->
@@ -32,8 +40,23 @@ include 'header.php';
 
 
         <div class="col-md-8 col-lg-8 pb-4">
-
-          <form action="login.php">
+    <?php if (!empty($success)): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              <?= $success ?>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          <?php endif; ?>
+          <?php if (!empty($errors)): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              <ul class="mb-0">
+                <?php foreach ($errors as $err): ?>
+                  <li><?= htmlspecialchars($err) ?></li>
+                <?php endforeach; ?>
+              </ul>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          <?php endif; ?>
+          <form action="backend/register_process.php" method="POST" enctype="multipart/form-data">
             <div class="row">
               <div class="col-6">
                 <div class="form-group">
@@ -126,11 +149,18 @@ include 'header.php';
               <span id="password_error"></span>
             </div>
 
-            <div class="form-group mb-5">
+            <div class="form-group">
               <label class="text-black" for="confirm_password">Confirm Password</label>
               <input type="password" class="form-control" id="confirm_password"
-                data-validation="required confirmPassword" name="confirmPassword">
+                data-validation="required " name="confirmPassword">
               <span id="confirmPassword_error"></span>
+            </div>
+
+            <div class="form-group mb-5 mt-2">
+              <label class="text-black" for="profile_photo">Profile Photo</label>
+              <input type="file" class="form-control" id="profile_photo" name="profile_photo"
+                data-validation="required file">
+              <span id="profile_photo_error"></span>
             </div>
 
             <button type="submit" class="btn btn-primary-hover-outline">Register</button>

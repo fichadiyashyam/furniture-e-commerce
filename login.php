@@ -1,6 +1,20 @@
 <?php
 $page = 'login';
 include 'header.php';
+
+$errors = $_SESSION['login_errors'] ?? [];
+$old    = $_SESSION['login_old']    ?? [];
+unset($_SESSION['login_errors'], $_SESSION['login_old']);
+// If already logged in, redirect to correct dashboard
+if (!empty($_SESSION['is_logged_in'])) {
+    if (!empty($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        header('Location: Admin/index.php');
+        exit;
+    }
+    header('Location: profile.php');
+    exit;
+}
+
 ?>
 <script src="js/validation.js"></script>
 <!-- Start Hero Section -->
@@ -33,11 +47,31 @@ include 'header.php';
 
 
         <div class="col-md-8 col-lg-8 pb-4">
+          <?php $success_msg = $_SESSION['login_success'] ?? null; unset($_SESSION['login_success']); ?>
+          <?php if ($success_msg): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              <?= htmlspecialchars($success_msg) ?>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          <?php endif; ?>
 
-          <form action="index.php">
+          <?php if (!empty($errors)): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              <ul class="mb-0">
+                <?php foreach ($errors as $err): ?>
+                  <li><?= htmlspecialchars($err) ?></li>
+                <?php endforeach; ?>
+              </ul>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          <?php endif; ?>
+
+        <form action="backend/login_process.php" method="POST">
             <div class="form-group">
               <label class="text-black" for="email">Email address</label>
-              <input type="email" class="form-control" id="email" name="email" data-validation="required email">
+             <input type="email" class="form-control" id="email" name="email"
+                data-validation="required email"
+                value="<?= htmlspecialchars($old['email'] ?? '') ?>">
               <span id="email_error"></span>
             </div>
 

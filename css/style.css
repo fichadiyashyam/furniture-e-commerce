@@ -388,6 +388,40 @@ a.more {
   visibility: visible;
 }
 
+/* Wishlist heart icon */
+.product-section .product-item .icon-wishlist {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  z-index: 5;
+  cursor: pointer;
+  transition: .3s all ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.product-section .product-item .icon-wishlist i {
+  font-size: 16px;
+  color: #e74c3c;
+  transition: .2s all ease;
+}
+
+.product-section .product-item .icon-wishlist:hover {
+  background: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.product-section .product-item .icon-wishlist i.fas {
+  color: #e74c3c;
+}
+
 .product-section .product-item:hover:before {
   height: 70%;
 }

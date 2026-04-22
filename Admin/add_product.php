@@ -1,4 +1,60 @@
-<?php include 'header.php'; ?>
+<?php 
+include 'header.php'; 
+include '../config/db_config.php';
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['product_name'])) {
+    $product_name = mysqli_real_escape_string($connection, $_POST['product_name']);
+    $price = floatval($_POST['price']);
+    $original_price = isset($_POST['original_price']) && $_POST['original_price'] !== '' ? floatval($_POST['original_price']) : 'NULL';
+    $stock = intval($_POST['stock']);
+    $category = mysqli_real_escape_string($connection, $_POST['category']);
+    $short_description = mysqli_real_escape_string($connection, $_POST['short_description']);
+    $description = mysqli_real_escape_string($connection, $_POST['description']);
+    $sku = mysqli_real_escape_string($connection, $_POST['sku']);
+    $material = mysqli_real_escape_string($connection, $_POST['material']);
+    $dimensions = mysqli_real_escape_string($connection, $_POST['dimensions']);
+    $weight = mysqli_real_escape_string($connection, $_POST['weight']);
+    $color_options = mysqli_real_escape_string($connection, $_POST['color_options']);
+    $status = mysqli_real_escape_string($connection, $_POST['status']);
+    
+    // Helper function for image upload
+    function uploadImage($fileKey) {
+        if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] == 0) {
+            $allowed = array("jpg", "jpeg", "png", "gif");
+            $file_name = $_FILES[$fileKey]['name'];
+            $file_tmp = $_FILES[$fileKey]['tmp_name'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+            if (in_array($file_ext, $allowed)) {
+                if (!is_dir('../images/')) { mkdir('../images/', 0777, true); }
+                $new_file_name = $fileKey . "_" . time() . "_" . rand(100,999) . "." . $file_ext;
+                if (move_uploaded_file($file_tmp, "../images/" . $new_file_name)) {
+                    return $new_file_name;
+                }
+            }
+        }
+        return '';
+    }
+
+    $image = uploadImage('image');
+    if (empty($image)) { $error = "Product main image is required."; }
+    
+    $gallery_1 = uploadImage('gallery_image_1');
+    $gallery_2 = uploadImage('gallery_image_2');
+    $gallery_3 = uploadImage('gallery_image_3');
+
+    if (!isset($error)) {
+        $insert_query = "INSERT INTO products (product_name, price, original_price, stock, category, short_description, description, image, gallery_image_1, gallery_image_2, gallery_image_3, sku, material, dimensions, weight, color_options, status) 
+                         VALUES ('$product_name', $price, $original_price, $stock, '$category', '$short_description', '$description', '$image', '$gallery_1', '$gallery_2', '$gallery_3', '$sku', '$material', '$dimensions', '$weight', '$color_options', '$status')";
+        if (mysqli_query($connection, $insert_query)) {
+            echo "<script>window.location.href='products.php?msg=" . urlencode("Product added successfully") . "';</script>";
+            exit();
+        } else {
+            $error = "Failed to add product. " . mysqli_error($connection);
+        }
+    }
+}
+?>
 
 <style>
     /* Custom error message */
@@ -23,8 +79,9 @@
         <div class="col-md-8 mx-auto">
             <div class="card shadow-sm border-0">
                 <div class="card-body p-4">
+                    <?php if (isset($error)) { echo "<div class='alert alert-danger'>$error</div>"; } ?>
 
-                    <form id="addProductForm" action="#" method="POST" enctype="multipart/form-data">
+                    <form id="addProductForm" action="" method="POST" enctype="multipart/form-data">
 
                         <!-- Product Name -->
                         <div class="mb-3 position-relative">
@@ -36,54 +93,101 @@
 
                         <!-- Price -->
                         <div class="row mb-3">
-                            <div class="col-md-6 position-relative">
-                                <label class="form-label">Price</label>
+                            <div class="col-md-4 position-relative">
+                                <label class="form-label">Price <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
                                     <input type="number" class="form-control" name="price" placeholder="0.00"
                                         step="0.01" data-validation="required number">
                                 </div>
-                                <div id="price_error"></div>
                             </div>
-
-                            <!-- Stock -->
-                            <div class="col-md-6 position-relative">
-                                <label class="form-label">Stock Quantity</label>
+                            <div class="col-md-4 position-relative">
+                                <label class="form-label">Original Price (Optional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" name="original_price" placeholder="0.00"
+                                        step="0.01">
+                                </div>
+                            </div>
+                            <div class="col-md-4 position-relative">
+                                <label class="form-label">Stock Quantity <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" name="stock" placeholder="0"
                                     data-validation="required number">
-                                <div id="stock_error"></div>
                             </div>
                         </div>
 
-                        <!-- Category -->
-                        <div class="mb-3 position-relative">
-                            <label class="form-label">Category</label>
-                            <select class="form-select" name="category" data-validation="required select">
-                                <option value="">Choose category...</option>
-                                <option value="chairs">Chairs</option>
-                                <option value="tables">Tables</option>
-                                <option value="sofas">Sofas</option>
-                                <option value="beds">Beds</option>
-                            </select>
-                            <div id="category_error"></div>
+                        <!-- Category & SKU -->
+                        <div class="row mb-3">
+                            <div class="col-md-6 position-relative">
+                                <label class="form-label">Category <span class="text-danger">*</span></label>
+                                <select class="form-select" name="category" data-validation="required select">
+                                    <option value="">Choose category...</option>
+                                    <option value="chairs">Chairs</option>
+                                    <option value="tables">Tables</option>
+                                    <option value="sofas">Sofas</option>
+                                    <option value="beds">Beds</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 position-relative">
+                                <label class="form-label">SKU (Optional)</label>
+                                <input type="text" class="form-control" name="sku" placeholder="e.g. CHR-VLV-001">
+                            </div>
                         </div>
 
-                        <!-- Description -->
+                        <!-- Product Specs -->
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 position-relative">
+                                <label class="form-label">Material (Optional)</label>
+                                <input type="text" class="form-control" name="material" placeholder="e.g. Velvet Fabric, Solid Wood">
+                            </div>
+                            <div class="col-md-6 mb-3 position-relative">
+                                <label class="form-label">Dimensions (Optional)</label>
+                                <input type="text" class="form-control" name="dimensions" placeholder="e.g. 70 cm x 65 cm x 85 cm">
+                            </div>
+                            <div class="col-md-6 mb-3 position-relative">
+                                <label class="form-label">Weight (Optional)</label>
+                                <input type="text" class="form-control" name="weight" placeholder="e.g. 12 kg">
+                            </div>
+                            <div class="col-md-6 mb-3 position-relative">
+                                <label class="form-label">Color Options (Optional)</label>
+                                <input type="text" class="form-control" name="color_options" placeholder="e.g. Navy Blue,Grey,Pink">
+                                <small class="text-muted">Comma separated</small>
+                            </div>
+                        </div>
+
+                        <!-- Short Description -->
                         <div class="mb-3 position-relative">
-                            <label class="form-label">Description</label>
+                            <label class="form-label">Short Description (Optional)</label>
+                            <textarea class="form-control" name="short_description" rows="2"
+                                placeholder="Enter a brief summary for the product detail top section"></textarea>
+                        </div>
+
+                        <!-- Full Description -->
+                        <div class="mb-3 position-relative">
+                            <label class="form-label">Full Description <span class="text-danger">*</span></label>
                             <textarea class="form-control" name="description" rows="4"
-                                placeholder="Enter product description" data-validation="required min max" data-min="10"
-                                data-max="500"></textarea>
-                            <div id="description_error"></div>
+                                placeholder="Enter full product specifications" data-validation="required min max" data-min="10"
+                                data-max="2000"></textarea>
                         </div>
 
-                        <!-- Image -->
+                        <!-- Images -->
                         <div class="mb-3 position-relative">
-                            <label class="form-label">Product Image</label>
-                            <input class="form-control" type="file" name="image"
-                                data-validation="required fileSize fileType" data-filesize="2048"
-                                data-filetype="jpg,jpeg,png">
-                            <div id="image_error"></div>
+                            <label class="form-label">Main Image <span class="text-danger">*</span></label>
+                            <input class="form-control" type="file" name="image" accept="image/*" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Gallery Image 1</label>
+                                <input class="form-control" type="file" name="gallery_image_1" accept="image/*">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Gallery Image 2</label>
+                                <input class="form-control" type="file" name="gallery_image_2" accept="image/*">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Gallery Image 3</label>
+                                <input class="form-control" type="file" name="gallery_image_3" accept="image/*">
+                            </div>
                         </div>
 
                         <!-- Status -->
@@ -204,8 +308,8 @@
             },
 
             submitHandler: function (form) {
-                alert("Product validated successfully ✔");
-                // form.submit(); // enable when backend is ready
+                // Remove alert to just submit directly, or leave it and submit.
+                form.submit();
             }
         });
 

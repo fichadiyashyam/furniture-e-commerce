@@ -1,3 +1,13 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+// Enforce admin login check
+if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true || empty($_SESSION['role'])) {
+    header("Location: ../login.php");
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 

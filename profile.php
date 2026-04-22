@@ -1,11 +1,32 @@
 <?php
+require_once 'auth_check.php';
+require_once 'config/db_config.php';
+ // must be logged in to view this page
 $page = 'product_detail';
 include 'header.php';
-?>
 
+$user_email = $_SESSION['user_email'];
+$user_data = 'select * from users where email = "'.$user_email.'"';
+$user_data = mysqli_query($connection, $user_data);
+$user_data = mysqli_fetch_assoc($user_data);
+
+?>
 <link rel="stylesheet" href="css/profile.css">
 <script src="js/validation.js"></script>
 <div class="container my-5">
+    <?php 
+        $dashboard_success = $_SESSION['dashboard_success'] ?? null; unset($_SESSION['dashboard_success']); 
+        $passwordSuccess = $_SESSION['password_success'] ?? null; unset($_SESSION['password_success']);
+        $passwordErrors = $_SESSION['password_errors'] ?? []; unset($_SESSION['password_errors']);
+    ?>
+    <?php $dashboard_success = $_SESSION['dashboard_success'] ?? null; unset($_SESSION['dashboard_success']); ?>
+    <?php if ($dashboard_success): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?= htmlspecialchars($dashboard_success) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
     <div class="row">
         <!-- Sidebar -->
         <div class="col-lg-3 mb-4">
@@ -13,16 +34,22 @@ include 'header.php';
                 <!-- Profile Photo Section -->
                 <div class="profile-photo-section text-center p-4 bg-white rounded shadow-sm mb-3">
                     <div class="profile-photo-wrapper position-relative d-inline-block mb-3">
+                        <?php
+                        $photo = $_SESSION['user_photo'] ?? '';
+                        $photoSrc = (!empty($photo) && file_exists(__DIR__ . '/' . $photo))
+                            ? $photo
+                            : 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80';
+                        ?>
                         <img id="profilePhoto"
-                            src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80"
+                            src="<?= htmlspecialchars($photoSrc) ?>"
                             alt="Profile Photo" class="profile-photo rounded-circle">
                         <label for="photoUpload" class="photo-upload-btn">
                             <i class="fas fa-camera"></i>
                         </label>
                         <input type="file" id="photoUpload" accept="image/*" style="display: none;">
                     </div>
-                    <h5 class="mb-1">Jay Santoki</h5>
-                    <p class="text-muted mb-0">jay.santoki@example.com</p>
+                    <h5 class="mb-1"><?= htmlspecialchars($_SESSION['user_name'] ?? 'User') ?></h5>
+                    <p class="text-muted mb-0"><?= htmlspecialchars($_SESSION['user_email'] ?? '') ?></p>
                 </div>
 
                 <!-- Navigation Menu -->
@@ -59,7 +86,7 @@ include 'header.php';
                             </a>
                         </li>
                         <li>
-                            <a href="#" class="menu-item text-danger">
+                            <a href="logout.php" class="menu-item text-danger">
                                 <i class="fas fa-sign-out-alt me-2"></i> Logout
                             </a>
                         </li>
@@ -81,13 +108,13 @@ include 'header.php';
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Full Name</label>
-                                    <p class="detail-value">Shyam Fichadiya</p>
+                                    <p class="detail-value"><?= $user_data['first_name'] . ' ' . $user_data['last_name'] ?></p>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Email Address</label>
-                                    <p class="detail-value">Shyam.Fichadiya@example.com</p>
+                                    <p class="detail-value"><?= $user_data['email'] ?></p>
                                 </div>
                             </div>
                         </div>
@@ -96,37 +123,28 @@ include 'header.php';
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Phone Number</label>
-                                    <p class="detail-value">+91 98765 43210</p>
+                                    <p class="detail-value"><?= $user_data['phone'] ?></p>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                             <div class="col-md-6">
                                 <div class="detail-item">
-                                    <label class="detail-label">Date of Birth</label>
-                                    <p class="detail-value">15 January 1995</p>
+                                    <label class="detail-label">Gender</label>
+                                    <p class="detail-value"><?= $user_data['gender'] ?></p>
                                 </div>
                             </div>
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                           <div class="col-md-6">
                                 <div class="detail-item">
-                                    <label class="detail-label">Gender</label>
-                                    <p class="detail-value">Male</p>
+                                    <label class="detail-label">Address</label>
+                                    <p class="detail-value"><?= $user_data['address'] ?></p>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Member Since</label>
-                                    <p class="detail-value">January 2024</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="detail-item">
-                                    <label class="detail-label">Address</label>
-                                    <p class="detail-value">123, MG Road, Ahmedabad, Gujarat - 380001, India</p>
+                                    <p class="detail-value"><?= $user_data['created_at'] ?></p>
                                 </div>
                             </div>
                         </div>
@@ -140,12 +158,20 @@ include 'header.php';
                 </div>
 
                 <!-- Account Statistics -->
+                <?php
+                // Get real counts
+                $uid = intval($_SESSION['user_id']);
+                $order_count_q = mysqli_query($connection, "SELECT COUNT(*) AS cnt FROM orders WHERE user_id = $uid");
+                $order_count = ($order_count_q && $r = mysqli_fetch_assoc($order_count_q)) ? intval($r['cnt']) : 0;
+                $wishlist_count_q = mysqli_query($connection, "SELECT COUNT(*) AS cnt FROM wishlist WHERE user_id = $uid");
+                $wishlist_count = ($wishlist_count_q && $r = mysqli_fetch_assoc($wishlist_count_q)) ? intval($r['cnt']) : 0;
+                ?>
                 <div class="row mt-4">
                     <div class="col-md-4 mb-3">
                         <div class="stat-card bg-primary text-white rounded shadow-sm p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h3 class="mb-0">12</h3>
+                                    <h3 class="mb-0"><?php echo $order_count; ?></h3>
                                     <p class="mb-0">Total Orders</p>
                                 </div>
                                 <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
@@ -156,7 +182,7 @@ include 'header.php';
                         <div class="stat-card bg-success text-white rounded shadow-sm p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h3 class="mb-0">8</h3>
+                                    <h3 class="mb-0" id="wishlistStatCount"><?php echo $wishlist_count; ?></h3>
                                     <p class="mb-0">Wishlist Items</p>
                                 </div>
                                 <i class="fas fa-heart fa-2x opacity-50"></i>
@@ -184,19 +210,19 @@ include 'header.php';
                         <h4 class="mb-0">Edit Profile</h4>
                     </div>
                     <div class="card-body">
-                        <form action="/update-profile" method="POST">
+                        <form action="update_profile.php" method="POST">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="firstName" class="form-label">First Name *</label>
                                     <input type="text" class="form-control" id="firstName" name="firstName"
-                                        value="Shyam" data-validation="required min max alphabetic" data-min="2"
+                                        value="<?= $user_data['first_name'] ?>" data-validation="required min max alphabetic" data-min="2"
                                         data-max="100">
                                     <span id="firstName_error"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="lastName" class="form-label">Last Name *</label>
                                     <input type="text" class="form-control" id="lastName" name="lastName"
-                                        value="Fichadiya" data-validation="required min max alphabetic" data-min="2"
+                                        value="<?= $user_data['last_name'] ?>" data-validation="required min max alphabetic" data-min="2"
                                         data-max="100">
                                     <span id="lastName_error"></span>
                                 </div>
@@ -206,13 +232,13 @@ include 'header.php';
                                 <div class="col-md-6">
                                     <label for="email" class="form-label">Email Address *</label>
                                     <input type="email" class="form-control" id="email" name="email"
-                                        value="jay.santoki@example.com" data-validation="required email">
+                                        value="<?= $user_data['email'] ?>" data-validation="required email" readonly>
                                     <span id="email_error"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="phone" class="form-label">Phone Number *</label>
                                     <input type="tel" class="form-control" id="phone" name="phone"
-                                        value="+91 98765 43210" data-validation="required number min max" data-min="10"
+                                        value="<?= $user_data['phone'] ?>" data-validation="required number min max" data-min="10"
                                         data-max="10">
                                         <span id="phone_error"></span>
                                 </div>
@@ -224,9 +250,9 @@ include 'header.php';
                                     <label for="gender" class="form-label">Gender</label>
                                     <select class="form-select" id="gender" name="gender" data-validation="required select">
                                         <option value="">Select Gender</option>
-                                        <option value="male" selected>Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
+                                        <option value="male" <?php if ($user_data['gender'] == 'male') echo 'selected'; ?>>Male</option>
+                                        <option value="female" <?php if ($user_data['gender'] == 'female') echo 'selected'; ?>>Female</option>
+                                        <option value="other" <?php if ($user_data['gender'] == 'other') echo 'selected'; ?>>Other</option>
                                     </select>
                                     <span id="gender_error"></span>
                                 </div>
@@ -234,7 +260,7 @@ include 'header.php';
 
                             <div class="mb-3">
                                 <label for="address" class="form-label">Address</label>
-                                <input type="text" class="form-control" id="address" name="address" value="123, MG Road"
+                                <input type="text" class="form-control" id="address" name="address" value="<?= $user_data['address'] ?>"
                                     placeholder="Street Address" data-validation="required min" data-min="2">
                                 <span id="address_error"></span>
                             </div>
@@ -242,12 +268,12 @@ include 'header.php';
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="city" class="form-label">City</label>
-                                    <input type="text" class="form-control" id="city" name="city" value="Ahmedabad" data-validation="required min" data-min="2">
+                                    <input type="text" class="form-control" id="city" name="city" value="<?= $user_data['city'] ?>" data-validation="required min" data-min="2">
                                     <span id="city_error"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="state" class="form-label">State</label>
-                                    <input type="text" class="form-control" id="state" name="state" value="Gujarat" data-validation="required min" data-min="2">
+                                    <input type="text" class="form-control" id="state" name="state" value="<?= $user_data['state'] ?>" data-validation="required min" data-min="2">
                                     <span id="state_error"></span>
                                 </div>
                             </div>
@@ -255,12 +281,12 @@ include 'header.php';
                             <div class="row mb-4">
                                 <div class="col-md-6">
                                     <label for="pincode" class="form-label">Pin Code</label>
-                                    <input type="text" class="form-control" id="pincode" name="pincode" value="380001" data-validation="required number min max" data-max="6" data-min="6">
+                                    <input type="text" class="form-control" id="pincode" name="pincode" value="<?= $user_data['pincode'] ?>" data-validation="required number min max" data-max="6" data-min="6">
                                     <span id="pincode_error"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="country" class="form-label">Country</label>
-                                    <input type="text" class="form-control" id="country" name="country" value="India" data-validation="required max min alphabetic" data-min="2" data-max="10">
+                                    <input type="text" class="form-control" id="country" name="country" value="<?= $user_data['country'] ?>" data-validation="required max min alphabetic" data-min="2" data-max="10">
                                     <sapn id="country_error"></sapn>
                                 </div>
                             </div>
@@ -286,30 +312,46 @@ include 'header.php';
                         <h4 class="mb-0">Change Password</h4>
                     </div>
                     <div class="card-body">
+                         <?php if (!empty($passwordSuccess)): ?>
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <?= htmlspecialchars($passwordSuccess) ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($passwordErrors)): ?>
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <ul class="mb-0">
+                                    <?php foreach ($passwordErrors as $err): ?>
+                                        <li><?= htmlspecialchars($err) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        <?php endif; ?>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
                             Password must be at least 8 characters long and include uppercase, lowercase, number, and
                             special character.
                         </div>
 
-                        <form>
+                        <form action="change_password_process.php" method="POST">
                             <div class="mb-3">
                                 <label for="currentPassword" class="form-label">Current Password *</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="currentPassword" name="oldPasssword"
+                                    <input type="password" class="form-control" id="currentPassword" name="currentPassword"
                                         data-validation="required strongPassword">
                                     <button class="btn btn-outline-secondary" type="button"
                                         onclick="togglePassword('currentPassword')">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
-                                <span id="oldPasssword_error"></span>
+                                <span id="currentPassword_error"></span>
                             </div>
 
                             <div class="mb-3">
                                 <label for="newPassword" class="form-label">New Password *</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="password" name="password"
+                                    <input type="password" class="form-control" id="newPassword" name="newPassword"
                                         data-validation="required strongPassword">
                                     <button class="btn btn-outline-secondary" type="button"
                                         onclick="togglePassword('newPassword')">
@@ -318,7 +360,7 @@ include 'header.php';
 
                                 </div>
 
-                                <span id="password_error"></span>
+                                <span id="newPassword_error"></span>
 
                             </div>
 
@@ -326,7 +368,7 @@ include 'header.php';
                                 <label for="confirmPassword" class="form-label">Confirm New Password *</label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="confirmPassword"
-                                        name="confirmPassword" data-validation="required confirmPassword">
+                                        name="confirmPassword" data-validation="required">
                                     <button class="btn btn-outline-secondary" type="button"
                                         onclick="togglePassword('confirmPassword')">
                                         <i class="fas fa-eye"></i>
@@ -493,70 +535,19 @@ include 'header.php';
             <!-- Wishlist Section -->
             <div id="wishlist" class="content-section" style="display: none;">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-white">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">My Wishlist</h4>
+                        <span class="badge bg-primary" id="wishlistCountBadge">0 items</span>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <!-- Wishlist Item 1 -->
-                            <div class="col-md-4 mb-4">
-                                <div class="wishlist-card border rounded">
-                                    <div class="position-relative">
-                                        <img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=80"
-                                            alt="Product" class="img-fluid rounded-top">
-                                        <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                    <div class="p-3">
-                                        <h6>Modern Velvet Chair</h6>
-                                        <p class="text-primary mb-2"><strong>₹12,999</strong></p>
-                                        <button class="btn btn-primary btn-sm w-100">
-                                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Wishlist Item 2 -->
-                            <div class="col-md-4 mb-4">
-                                <div class="wishlist-card border rounded">
-                                    <div class="position-relative">
-                                        <img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=80"
-                                            alt="Product" class="img-fluid rounded-top">
-                                        <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                    <div class="p-3">
-                                        <h6>Luxury Sofa Set</h6>
-                                        <p class="text-primary mb-2"><strong>₹45,999</strong></p>
-                                        <button class="btn btn-primary btn-sm w-100">
-                                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Wishlist Item 3 -->
-                            <div class="col-md-4 mb-4">
-                                <div class="wishlist-card border rounded">
-                                    <div class="position-relative">
-                                        <img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=80"
-                                            alt="Product" class="img-fluid rounded-top">
-                                        <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                    <div class="p-3">
-                                        <h6>Dining Chair Set</h6>
-                                        <p class="text-primary mb-2"><strong>₹24,999</strong></p>
-                                        <button class="btn btn-primary btn-sm w-100">
-                                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="row" id="wishlistContainer">
+                            <!-- Wishlist items loaded dynamically -->
+                        </div>
+                        <div id="wishlistEmpty" class="text-center py-5" style="display: none;">
+                            <i class="far fa-heart fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Your wishlist is empty</h5>
+                            <p class="text-muted mb-3">Browse our products and add items you love!</p>
+                            <a href="shop.php" class="btn btn-primary">Browse Products</a>
                         </div>
                     </div>
                 </div>
@@ -720,10 +711,138 @@ include 'header.php';
         }, 3000);
     }
 
-    // Initialize - Show profile section by default
+    // Initialize - Show section based on URL hash or default to profile
     document.addEventListener('DOMContentLoaded', function () {
-        showSection('profile');
+        const hash = window.location.hash.replace('#', '');
+        const validSections = ['profile', 'edit-profile', 'change-password', 'orders', 'addresses', 'wishlist'];
+        if (hash && validSections.includes(hash)) {
+            showSection(hash);
+        } else {
+            showSection('profile');
+        }
+        loadWishlist();
     });
+
+    // ── Wishlist Functions ──
+    function loadWishlist() {
+        $.ajax({
+            url: 'backend/wishlist_action.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { action: 'list' },
+            success: function(response) {
+                if (response.success) {
+                    renderWishlist(response.items);
+                    updateWishlistCounts(response.wishlist_count);
+                }
+            }
+        });
+    }
+
+    function renderWishlist(items) {
+        const container = document.getElementById('wishlistContainer');
+        const emptyState = document.getElementById('wishlistEmpty');
+
+        if (!items || items.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        let html = '';
+        items.forEach(item => {
+            const price = parseFloat(item.price).toFixed(2);
+            const originalPrice = item.original_price ? parseFloat(item.original_price).toFixed(2) : null;
+            const inStock = parseInt(item.stock) > 0;
+
+            html += `
+            <div class="col-md-4 mb-4" id="wishlist-item-${item.product_id}">
+                <div class="wishlist-card border rounded overflow-hidden" style="transition: .3s all ease;">
+                    <div class="position-relative">
+                        <a href="product_detail.php?id=${item.product_id}">
+                            <img src="images/${item.image}" alt="${item.product_name}" 
+                                 class="img-fluid" style="width: 100%; height: 200px; object-fit: contain; background: #f8f9fa; padding: 10px;">
+                        </a>
+                        <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 rounded-circle" 
+                                style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                onclick="removeFromWishlist(${item.product_id})" title="Remove from Wishlist">
+                            <i class="fas fa-times" style="font-size: 12px;"></i>
+                        </button>
+                        ${!inStock ? '<span class="badge bg-secondary position-absolute bottom-0 start-0 m-2">Out of Stock</span>' : ''}
+                    </div>
+                    <div class="p-3">
+                        <a href="product_detail.php?id=${item.product_id}" class="text-decoration-none">
+                            <h6 class="mb-1 text-dark">${item.product_name}</h6>
+                        </a>
+                        <div class="mb-2">
+                            <strong class="text-primary">₹${price}</strong>
+                            ${originalPrice ? `<small class="text-muted text-decoration-line-through ms-1">₹${originalPrice}</small>` : ''}
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100" ${!inStock ? 'disabled' : ''}
+                                onclick="addWishlistToCart(${item.product_id})">
+                            <i class="fas fa-shopping-cart me-2"></i>${inStock ? 'Add to Cart' : 'Out of Stock'}
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function updateWishlistCounts(count) {
+        const badge = document.getElementById('wishlistCountBadge');
+        const stat = document.getElementById('wishlistStatCount');
+        if (badge) badge.textContent = count + ' item' + (count !== 1 ? 's' : '');
+        if (stat) stat.textContent = count;
+    }
+
+    function removeFromWishlist(productId) {
+        $.ajax({
+            url: 'backend/wishlist_action.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { action: 'remove', product_id: productId },
+            success: function(response) {
+                if (response.success) {
+                    const el = document.getElementById('wishlist-item-' + productId);
+                    if (el) {
+                        el.style.transform = 'scale(0.8)';
+                        el.style.opacity = '0';
+                        setTimeout(() => {
+                            el.remove();
+                            // Check if empty
+                            const container = document.getElementById('wishlistContainer');
+                            if (container.children.length === 0) {
+                                document.getElementById('wishlistEmpty').style.display = 'block';
+                            }
+                        }, 300);
+                    }
+                    updateWishlistCounts(response.wishlist_count);
+                    showNotification('Removed from wishlist');
+                }
+            }
+        });
+    }
+
+    function addWishlistToCart(productId) {
+        $.ajax({
+            url: 'backend/cart_action.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { action: 'add', id: productId, qty: 1, color: '' },
+            success: function(response) {
+                if (response.success) {
+                    showNotification('Added to cart!', 'success');
+                } else {
+                    showNotification(response.message || 'Failed to add to cart', 'danger');
+                }
+            },
+            error: function() {
+                showNotification('Something went wrong', 'danger');
+            }
+        });
+    }
 
 </script>
 

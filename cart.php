@@ -1,5 +1,7 @@
 <?php
+require_once 'auth_check.php'; // must be logged in
 $page = 'cart';
+include 'config/db_config.php';
 include 'header.php';
 ?>
 <style>
@@ -42,61 +44,70 @@ include 'header.php';
               </tr>
             </thead>
             <tbody>
-              <tr class="cart-products">
-                <td class="product-thumbnail">
-                  <img src="images/product-1.png" alt="Image" class="img-fluid">
-                </td>
-                <td class="product-name">
-                  <h2 class="h5 text-black">Product 1</h2>
-                </td>
-                <td class="price">$49.00</td>
-                <td>
-                  <div class="input-group mb-3 d-flex align-items-center" style="max-width: 120px; margin: 0 auto;">
+              <?php
+              $subtotal = 0;
+              $session_id = session_id();
+              $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
 
-                    <div class="input-group-prepend">
-                      <button class="btn btn-outline-black decrease minus" type="button">&minus;</button>
-                    </div>
+              if ($user_id) {
+                $cart_query = "SELECT id FROM carts WHERE user_id = $user_id LIMIT 1";
+              } else {
+                $safe_session = mysqli_real_escape_string($connection, $session_id);
+                $cart_query = "SELECT id FROM carts WHERE session_id = '$safe_session' LIMIT 1";
+              }
+              $cart_res = mysqli_query($connection, $cart_query);
 
-                    <input type="text" class="form-control text-center quantity" value="1" placeholder=""
-                      aria-label="Example text with button addon" aria-describedby="button-addon1">
+              if ($cart_res && mysqli_num_rows($cart_res) > 0) {
+                $cart_row = mysqli_fetch_assoc($cart_res);
+                $cart_id = $cart_row['id'];
 
-                    <div class="input-group-append">
-                      <button class="btn btn-outline-black increase plus" type="button">&plus;</button>
-                    </div>
+                $query = "SELECT ci.*, p.product_name, p.image, p.price FROM cart_items ci JOIN products p ON ci.product_id = p.id WHERE ci.cart_id = $cart_id";
+                $res = mysqli_query($connection, $query);
 
-                  </div>
-                </td>
-                <td class="total">$49.00</td>
-                <td><a href="#" class="btn btn-black btn-sm">X</a></td>
-              </tr>
-
-              <tr class="cart-products">
-                <td class="product-thumbnail">
-                  <img src="images/product-2.png" alt="Image" class="img-fluid">
-                </td>
-                <td class="product-name">
-                  <h2 class="h5 text-black">Product 2</h2>
-                </td>
-                <td class="price">$49.00</td>
-                <td>
-                  <div class="input-group mb-3 d-flex align-items-center" style="max-width: 120px; margin: 0 auto;">
-
-                    <div class="input-group-prepend">
-                      <button class="btn btn-outline-black decrease minus" type="button">&minus;</button>
-                    </div>
-
-                    <input type="text" class="form-control text-center quantity" value="1" placeholder=""
-                      aria-label="Example text with button addon" aria-describedby="button-addon1">
-
-                    <div class="input-group-append">
-                      <button class="btn btn-outline-black increase plus" type="button">&plus;</button>
-                    </div>
-
-                  </div>
-                </td>
-                <td class="total">$49.00</td>
-                <td><a href="#" class="btn btn-black btn-sm">X</a></td>
-              </tr>
+                if ($res && mysqli_num_rows($res) > 0) {
+                  while ($item = mysqli_fetch_assoc($res)) {
+                    $product_id = $item['product_id'];
+                    $price = floatval($item['price']);
+                    $qty = intval($item['qty']);
+                    $total = $price * $qty;
+                    $subtotal += $total;
+                    ?>
+                    <tr class="cart-products" data-id="<?php echo $product_id; ?>"
+                      data-color="<?php echo htmlspecialchars($item['color']); ?>">
+                      <td class="product-thumbnail">
+                        <img src="images/<?php echo htmlspecialchars($item['image']); ?>" alt="Image" class="img-fluid">
+                      </td>
+                      <td class="product-name">
+                        <h2 class="h5 text-black"><?php echo htmlspecialchars($item['product_name']); ?></h2>
+                        <?php if (!empty($item['color'])): ?>
+                          <small>Color: <?php echo htmlspecialchars($item['color']); ?></small>
+                        <?php endif; ?>
+                      </td>
+                      <td class="price">$<?php echo number_format($price, 2); ?></td>
+                      <td>
+                        <div class="input-group mb-3 d-flex align-items-center" style="max-width: 120px; margin: 0 auto;">
+                          <div class="input-group-prepend">
+                            <button class="btn btn-outline-black decrease minus" type="button">&minus;</button>
+                          </div>
+                          <input type="text" class="form-control text-center quantity" value="<?php echo $qty; ?>"
+                            placeholder="" aria-label="Example text with button addon" aria-describedby="button-addon1">
+                          <div class="input-group-append">
+                            <button class="btn btn-outline-black increase plus" type="button">&plus;</button>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="total">$<?php echo number_format($total, 2); ?></td>
+                      <td><button type="button" class="btn btn-black btn-sm remove-item">X</button></td>
+                    </tr>
+                    <?php
+                  }
+                } else {
+                  echo "<tr><td colspan='6' class='text-center'>Your cart is empty.</td></tr>";
+                }
+              } else {
+                echo "<tr><td colspan='6' class='text-center'>Your cart is empty.</td></tr>";
+              }
+              ?>
             </tbody>
           </table>
         </div>
@@ -110,7 +121,7 @@ include 'header.php';
             <button class="btn btn-black btn-sm btn-block">Update Cart</button>
           </div>
           <div class="col-md-6">
-            <button class="btn btn-outline-black btn-sm btn-block">Continue Shopping</button>
+            <a href="shop.php" class="btn btn-outline-black btn-sm btn-block">Continue Shopping</a>
           </div>
         </div>
         <div class="row">
@@ -151,90 +162,164 @@ include 'header.php';
               </div>
             </div>
 
-            <div class="row">
-              <div class="col-md-12">
-                <button class="btn btn-black btn-lg py-3 btn-block" onclick="window.location='checkout.php'">Proceed To
-                  Checkout</button>
-              </div>
-            </div>
+
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="col-md-12">
+        <button class="btn btn-primary btn-lg py-3 btn-block mb-2" id="place-order-btn">Place Order</button>
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
+      </div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
 
-    const parseCurrency = (text) => {
-      const cleanString = text.replace(/[$,]/g, '').trim();
-      const value = parseFloat(cleanString);
-      return isNaN(value) ? 0 : value;
-    };
-
-    const products = document.querySelectorAll('.cart-products');
-    const subtotalEl = document.getElementById('cart-subtotal');
-    const totalEl = document.getElementById('cart-total');
-
-    const updateGrandTotal = () => {
-      let grandTotal = 0;
-      products.forEach(product => {
-        const rowTotalElement = product.querySelector('.total');
-        const rowTotal = parseCurrency(rowTotalElement.innerText);
-        grandTotal += rowTotal;
-      });
-      if (subtotalEl) subtotalEl.innerText = '$' + grandTotal.toFixed(2);
-      if (totalEl) totalEl.innerText = '$' + grandTotal.toFixed(2);
-    };
-
-    products.forEach(product => {
-      const plusBtn = product.querySelector('.plus');
-      const minusBtn = product.querySelector('.minus');
-      const quantityElement = product.querySelector('.quantity');
-      const totalElement = product.querySelector('.total');
-      const priceElement = product.querySelector('.price');
-
-
-      let price = parseCurrency(priceElement.innerText);
-      let quantity = parseInt(quantityElement.value);
-
-      const updateRow = () => {
-        let rowTotal = price * quantity;
-
-
-        quantityElement.value = quantity;
-
-        totalElement.innerText = '$' + rowTotal.toFixed(2);
-        updateGrandTotal();
+      const parseCurrency = (text) => {
+        const cleanString = text.replace(/[$,]/g, '').trim();
+        const value = parseFloat(cleanString);
+        return isNaN(value) ? 0 : value;
       };
 
-      if (plusBtn) {
-        plusBtn.addEventListener('click', () => {
-          quantity++;
-          updateRow();
-        });
-      }
+      const subtotalEl = document.getElementById('cart-subtotal');
+      const totalEl = document.getElementById('cart-total');
 
-      if (minusBtn) {
-        minusBtn.addEventListener('click', () => {
-          if (quantity > 1) {
-            quantity--;
-            updateRow();
+      const updateGrandTotal = () => {
+        const products = document.querySelectorAll('.cart-products');
+        let grandTotal = 0;
+        products.forEach(product => {
+          const rowTotalElement = product.querySelector('.total');
+          if (rowTotalElement) {
+            const rowTotal = parseCurrency(rowTotalElement.innerText);
+            grandTotal += rowTotal;
+          }
+        });
+        if (subtotalEl) subtotalEl.innerText = '$' + grandTotal.toFixed(2);
+        if (totalEl) totalEl.innerText = '$' + grandTotal.toFixed(2);
+      };
+
+      const updateCartAjax = (id, color, qty, row) => {
+        $.ajax({
+          url: 'backend/cart_action.php',
+          type: 'POST',
+          dataType: 'json',
+          data: { action: 'update', id: id, color: color, qty: qty },
+          success: function (response) {
+            if (!response.success) {
+              alert(response.message);
+            }
+          }
+        });
+      };
+
+      const removeCartAjax = (id, color, row) => {
+        $.ajax({
+          url: 'backend/cart_action.php',
+          type: 'POST',
+          dataType: 'json',
+          data: { action: 'remove', id: id, color: color },
+          success: function (response) {
+            if (response.success) {
+              row.remove();
+              updateGrandTotal();
+            } else {
+              alert(response.message);
+            }
+          }
+        });
+      };
+
+      // Use event delegation for dynamic cart
+      const tbody = document.querySelector('tbody');
+      if (tbody) {
+        tbody.addEventListener('click', function (e) {
+          if (e.target.classList.contains('minus') || e.target.classList.contains('plus')) {
+            const row = e.target.closest('tr');
+            const quantityElement = row.querySelector('.quantity');
+            const priceElement = row.querySelector('.price');
+            const totalElement = row.querySelector('.total');
+            const id = row.getAttribute('data-id');
+            const color = row.getAttribute('data-color');
+
+            let price = parseCurrency(priceElement.innerText);
+            let quantity = parseInt(quantityElement.value);
+
+            if (e.target.classList.contains('plus')) {
+              quantity++;
+            } else if (e.target.classList.contains('minus') && quantity > 1) {
+              quantity--;
+            }
+
+            quantityElement.value = quantity;
+            totalElement.innerText = '$' + (price * quantity).toFixed(2);
+
+            updateGrandTotal();
+            updateCartAjax(id, color, quantity, row);
+          }
+
+          if (e.target.classList.contains('remove-item')) {
+            const row = e.target.closest('tr');
+            const id = row.getAttribute('data-id');
+            const color = row.getAttribute('data-color');
+            removeCartAjax(id, color, row);
+          }
+        });
+
+        tbody.addEventListener('change', function (e) {
+          if (e.target.classList.contains('quantity')) {
+            const row = e.target.closest('tr');
+            const totalElement = row.querySelector('.total');
+            const priceElement = row.querySelector('.price');
+            const id = row.getAttribute('data-id');
+            const color = row.getAttribute('data-color');
+
+            let price = parseCurrency(priceElement.innerText);
+            let val = parseInt(e.target.value);
+            if (val < 1 || isNaN(val)) val = 1;
+            e.target.value = val;
+
+            totalElement.innerText = '$' + (price * val).toFixed(2);
+            updateGrandTotal();
+            updateCartAjax(id, color, val, row);
           }
         });
       }
 
 
-      quantityElement.addEventListener('change', () => {
-        let val = parseInt(quantityElement.value);
-        if (val < 1 || isNaN(val)) val = 1;
-        quantity = val;
-        updateRow();
-      });
-    });
+      const placeOrderBtn = document.getElementById('place-order-btn');
+      if (placeOrderBtn) {
+        $("#place-order-btn").click(function () {
+          placeOrderBtn.disabled = true;
+          placeOrderBtn.innerText = 'Placing Order...';
 
-    updateGrandTotal();
-  });
-</script>
-<?php include 'footer.php'; ?>
+          $.ajax({
+            url: 'backend/place_order.php',
+            type: 'POST',
+            dataType: 'json',
+            success: function (response) {
+              if (response.success) {
+                alert(response.message);
+                window.location.reload();
+              } else {
+                alert(response.message);
+                placeOrderBtn.disabled = false;
+                placeOrderBtn.innerText = 'Place Order';
+              }
+            },
+            error: function () {
+              alert('An error occurred while placing the order.');
+              placeOrderBtn.disabled = false;
+              placeOrderBtn.innerText = 'Place Order';
+            }
+          });
+        });
+      }
+
+      updateGrandTotal(); // Initial computation
+    });
+  </script>
+  <?php include 'footer.php'; ?>

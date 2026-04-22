@@ -1,6 +1,14 @@
 <?php include 'header.php'; ?>
 
         <div class="container-fluid p-4">
+            <?php $dashboard_success = $_SESSION['dashboard_success'] ?? null; unset($_SESSION['dashboard_success']); ?>
+            <?php if ($dashboard_success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?= htmlspecialchars($dashboard_success) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
             <div class="row">
                 <div class="col-md-3">
                     <div class="dashboard-card">

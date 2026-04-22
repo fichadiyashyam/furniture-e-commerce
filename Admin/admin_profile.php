@@ -1,27 +1,69 @@
 <?php
-$page = 'product_detail';
+$page = 'admin_profile';
 include 'header.php';
+require_once '../config/db_config.php';
+
+$userId = $_SESSION['user_id'];
+$query = "SELECT * FROM users WHERE id = '$userId'";
+$result = mysqli_query($connection, $query);
+$user = mysqli_fetch_assoc($result);
+
+$profilePhoto = !empty($user['profile_photo']) ? '../' . $user['profile_photo'] : 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80';
+$firstName = htmlspecialchars($user['first_name'] ?? '');
+$lastName = htmlspecialchars($user['last_name'] ?? '');
+$fullName = trim($firstName . ' ' . $lastName);
+$email = htmlspecialchars($user['email'] ?? '');
+$phone = htmlspecialchars($user['phone'] ?? '');
+$gender = htmlspecialchars($user['gender'] ?? '');
+$address = htmlspecialchars($user['address'] ?? '');
+$city = htmlspecialchars($user['city'] ?? '');
+$state = htmlspecialchars($user['state'] ?? '');
+$pincode = htmlspecialchars($user['pincode'] ?? '');
+$country = htmlspecialchars($user['country'] ?? '');
+$memberSince = !empty($user['created_at']) ? date("F Y", strtotime($user['created_at'])) : 'Unknown';
 ?>
 <link rel="stylesheet" href="admin_profile.css">
 <script src="/js/validation.js"></script>
 <div class="container my-5">
     <div class="row">
+        <div class="col-12">
+            <?php if (isset($_SESSION['profile_success'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?= htmlspecialchars($_SESSION['profile_success']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['profile_success']); ?>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['profile_errors'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <ul class="mb-0">
+                        <?php foreach ($_SESSION['profile_errors'] as $error): ?>
+                            <li><?= htmlspecialchars($error) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['profile_errors']); ?>
+            <?php endif; ?>
+        </div>
         <!-- Sidebar -->
         <div class="col-lg-3 mb-4">
             <div class="profile-sidebar">
                 <!-- Profile Photo Section -->
                 <div class="profile-photo-section text-center p-4 bg-white rounded shadow-sm mb-3">
-                    <div class="profile-photo-wrapper position-relative d-inline-block mb-3">
-                        <img id="profilePhoto"
-                            src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80"
-                            alt="Profile Photo" class="profile-photo rounded-circle">
-                        <label for="photoUpload" class="photo-upload-btn">
-                            <i class="fas fa-camera"></i>
-                        </label>
-                        <input type="file" id="photoUpload" accept="image/*" style="display: none;">
-                    </div>
-                    <h5 class="mb-1">Shyam fichadiya</h5>
-                    <p class="text-muted mb-0">shyam.fichadiya@example.com</p>
+                    <form id="photoForm" action="update_profile_photo.php" method="POST" enctype="multipart/form-data">
+                        <div class="profile-photo-wrapper position-relative d-inline-block mb-3">
+                            <img id="profilePhoto"
+                                src="<?= $profilePhoto ?>"
+                                alt="Profile Photo" class="profile-photo rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                            <label for="photoUpload" class="photo-upload-btn">
+                                <i class="fas fa-camera"></i>
+                            </label>
+                            <input type="file" name="profile_photo" id="photoUpload" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                        </div>
+                    </form>
+                    <h5 class="mb-1"><?= $fullName ?></h5>
+                    <p class="text-muted mb-0"><?= $email ?></p>
                 </div>
 
                 <!-- Navigation Menu -->
@@ -50,7 +92,7 @@ include 'header.php';
                         </li>
 
                         <li>
-                            <a href="#" class="menu-item text-danger">
+                            <a href="../logout.php" class="menu-item text-danger">
                                 <i class="fas fa-sign-out-alt me-2"></i> Logout
                             </a>
                         </li>
@@ -72,13 +114,13 @@ include 'header.php';
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Full Name</label>
-                                    <p class="detail-value">Shyam fichadiya</p>
+                                    <p class="detail-value"><?= !empty($fullName) ? $fullName : 'Not provided' ?></p>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Email Address</label>
-                                    <p class="detail-value">shyam.fichadiya@example.com</p>
+                                    <p class="detail-value"><?= $email ?></p>
                                 </div>
                             </div>
                         </div>
@@ -87,13 +129,13 @@ include 'header.php';
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Phone Number</label>
-                                    <p class="detail-value">+91 98765 43210</p>
+                                    <p class="detail-value"><?= !empty($phone) ? $phone : 'Not provided' ?></p>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Date of Birth</label>
-                                    <p class="detail-value">15 January 1995</p>
+                                    <p class="detail-value">Not configured in DB</p>
                                 </div>
                             </div>
                         </div>
@@ -102,13 +144,13 @@ include 'header.php';
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Gender</label>
-                                    <p class="detail-value">Male</p>
+                                    <p class="detail-value"><?= !empty($gender) ? ucfirst($gender) : 'Not provided' ?></p>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">Member Since</label>
-                                    <p class="detail-value">January 2024</p>
+                                    <p class="detail-value"><?= $memberSince ?></p>
                                 </div>
                             </div>
                         </div>
@@ -117,7 +159,14 @@ include 'header.php';
                             <div class="col-12">
                                 <div class="detail-item">
                                     <label class="detail-label">Address</label>
-                                    <p class="detail-value">123, MG Road, Ahmedabad, Gujarat - 380001, India</p>
+                                    <p class="detail-value">
+                                        <?php if (!empty($address)): ?>
+                                            <?= $address ?><?= !empty($city) ? ', ' . $city : '' ?><?= !empty($state) ? ', ' . $state : '' ?>
+                                            <?= !empty($pincode) ? ' - ' . $pincode : '' ?><?= !empty($country) ? ', ' . $country : '' ?>
+                                        <?php else: ?>
+                                            Not provided
+                                        <?php endif; ?>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -141,20 +190,20 @@ include 'header.php';
                         <h4 class="mb-0">Edit Profile</h4>
                     </div>
                     <div class="card-body">
-                        <form>
+                        <form action="update_profile.php" method="POST">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="firstName" class="form-label">First Name *</label>
                                     <input type="text" class="form-control" id="firstName" name="firstName"
                                         placeholder="Shyam" data-validation="required min max alphabetic" data-min="2"
-                                        data-max="100">
+                                        data-max="100" value="<?= $firstName ?>">
                                     <span id="firstName_error"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="lastName" class="form-label">Last Name *</label>
                                     <input type="text" class="form-control" id="lastName" name="lastName"
                                         placeholder="Fichadiya" data-validation="required min max alphabetic"
-                                        data-min="2" data-max="100">
+                                        data-min="2" data-max="100" value="<?= $lastName ?>">
                                     <span id="lastName_error"></span>
                                 </div>
                             </div>
@@ -162,14 +211,14 @@ include 'header.php';
                                 <div class="col-md-6">
                                     <label for="email" class="form-label">Email Address *</label>
                                     <input type="email" class="form-control" id="email" name="email"
-                                        value="shyam.fichadiya@example.com" data-validation="required email">
+                                        value="<?= $email ?>" data-validation="required email" readonly>
                                     <span id="email_error"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="phone" class="form-label">Phone Number *</label>
                                     <input type="tel" class="form-control" id="phone" name="phone"
                                         placeholder="+91 98765 43210" data-validation="required number min max"
-                                        data-min="10" data-max="10">
+                                        data-min="10" data-max="10" value="<?= $phone ?>">
                                     <span id="phone_error"></span>
                                 </div>
                             </div>
@@ -180,10 +229,10 @@ include 'header.php';
                                     <label for="gender" class="form-label">Gender</label>
                                     <select class="form-select" id="gender" name="gender"
                                         data-validation="required select">
-                                        <option placeholder="">Select Gender</option>
-                                        <option value="male" selected>Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
+                                        <option value="">Select Gender</option>
+                                        <option value="male" <?= $gender == 'male' ? 'selected' : '' ?>>Male</option>
+                                        <option value="female" <?= $gender == 'female' ? 'selected' : '' ?>>Female</option>
+                                        <option value="other" <?= $gender == 'other' ? 'selected' : '' ?>>Other</option>
                                     </select>
                                     <span id="gender_error"></span>
                                 </div>
@@ -193,7 +242,7 @@ include 'header.php';
                                 <label for="address" class="form-label">Address</label>
                                 <input type="text" class="form-control" id="address" name="address"
                                     placeholder="123, MG Road" placeholder="Street Address"
-                                    data-validation="required min" data-min="2">
+                                    data-validation="required min" data-min="2" value="<?= $address ?>">
                                 <span id="address_error"></span>
                             </div>
 
@@ -201,13 +250,13 @@ include 'header.php';
                                 <div class="col-md-6">
                                     <label for="city" class="form-label">City</label>
                                     <input type="text" class="form-control" id="city" name="city"
-                                        placeholder="Ahmedabad" data-validation="required min" data-min="2">
+                                        placeholder="Ahmedabad" data-validation="required min" data-min="2" value="<?= $city ?>">
                                     <span id="city_error"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="state" class="form-label">State</label>
                                     <input type="text" class="form-control" id="state" name="state"
-                                        placeholder="Gujarat" data-validation="required min" data-min="2">
+                                        placeholder="Gujarat" data-validation="required min" data-min="2" value="<?= $state ?>">
                                     <span id="state_error"></span>
                                 </div>
                             </div>
@@ -217,15 +266,15 @@ include 'header.php';
                                     <label for="pincode" class="form-label">Pin Code</label>
                                     <input type="text" class="form-control" id="pincode" name="pincode"
                                         placeholder="380001" data-validation="required number min max" data-max="6"
-                                        data-min="6">
+                                        data-min="6" value="<?= $pincode ?>">
                                     <span id="pincode_error"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="country" class="form-label">Country</label>
                                     <input type="text" class="form-control" id="country" name="country"
                                         placeholder="India" data-validation="required max min alphabetic" data-min="2"
-                                        data-max="10">
-                                    <sapn id="country_error"></sapn>
+                                        data-max="10" value="<?= $country ?>">
+                                    <span id="country_error"></span>
                                 </div>
                             </div>
 
@@ -256,18 +305,18 @@ include 'header.php';
                             special character.
                         </div>
 
-                        <form>
+                        <form action="change_password.php" method="POST">
                             <div class="mb-3">
                                 <label for="currentPassword" class="form-label">Current Password *</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="currentPassword" name="oldPasssword"
+                                    <input type="password" class="form-control" id="currentPassword" name="oldPassword"
                                         data-validation="required strongPassword">
                                     <button class="btn btn-outline-secondary" type="button"
                                         onclick="togglePassword('currentPassword')">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
-                                <span id="oldPasssword_error"></span>
+                                <span id="oldPassword_error"></span>
                             </div>
 
                             <div class="mb-3">

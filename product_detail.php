@@ -1,6 +1,38 @@
 <?php
 $page = 'product_detail';
+include 'config/db_config.php';
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 include 'header.php';
+
+// Check if product is in wishlist
+$is_wishlisted = false;
+if (!empty($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true) {
+    $wl_user = intval($_SESSION['user_id']);
+    // We'll check after we have the product id
+}
+
+if (!isset($_GET['id'])) {
+    echo "<script>window.location.href='shop.php';</script>";
+    exit();
+}
+
+$id = intval($_GET['id']);
+$query = "SELECT * FROM products WHERE id = $id AND status = 'active'";
+$result = mysqli_query($connection, $query);
+
+if (mysqli_num_rows($result) == 0) {
+    echo "<div class='container my-5'><h2>Product not found.</h2><a href='shop.php' class='btn btn-primary'>Back to Shop</a></div>";
+    include 'footer.php';
+    exit();
+}
+$product = mysqli_fetch_assoc($result);
+
+// Check wishlist status
+if (!empty($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true) {
+    $wl_user = intval($_SESSION['user_id']);
+    $wl_check = mysqli_query($connection, "SELECT id FROM wishlist WHERE user_id = $wl_user AND product_id = $id LIMIT 1");
+    $is_wishlisted = ($wl_check && mysqli_num_rows($wl_check) > 0);
+}
 ?>
 
 <link rel="stylesheet" href="css/product_detail.css">
@@ -13,13 +45,19 @@ include 'header.php';
             <div class="col-lg-6 mb-4">
                 <div class="product-images">
                     <div class="main-image mb-3">
-                        <img id="mainImage" src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=800&q=80" alt="Modern Accent Chair" class="img-fluid rounded">
+                        <img id="mainImage" src="images/<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>" class="img-fluid rounded" style="width: 100%; object-fit: contain;">
                     </div>
                     <div class="thumbnail-images d-flex gap-2">
-                        <img src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=200&q=80" alt="Front View" class="img-thumbnail thumbnail" onclick="changeImage(this)">
-                        <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=200&q=80" alt="Side View" class="img-thumbnail thumbnail" onclick="changeImage(this)">
-                        <img src="https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=200&q=80" alt="Angle View" class="img-thumbnail thumbnail" onclick="changeImage(this)">
-                        <img src="https://images.unsplash.com/photo-1519947486511-46149fa0a254?w=200&q=80" alt="Detail View" class="img-thumbnail thumbnail" onclick="changeImage(this)">
+                        <img src="images/<?php echo htmlspecialchars($product['image']); ?>" class="img-thumbnail thumbnail" onclick="changeImage(this)" style="width: 80px; height: 80px; object-fit: cover;">
+                        <?php if (!empty($product['gallery_image_1'])): ?>
+                            <img src="images/<?php echo htmlspecialchars($product['gallery_image_1']); ?>" class="img-thumbnail thumbnail" onclick="changeImage(this)" style="width: 80px; height: 80px; object-fit: cover;">
+                        <?php endif; ?>
+                        <?php if (!empty($product['gallery_image_2'])): ?>
+                            <img src="images/<?php echo htmlspecialchars($product['gallery_image_2']); ?>" class="img-thumbnail thumbnail" onclick="changeImage(this)" style="width: 80px; height: 80px; object-fit: cover;">
+                        <?php endif; ?>
+                        <?php if (!empty($product['gallery_image_3'])): ?>
+                            <img src="images/<?php echo htmlspecialchars($product['gallery_image_3']); ?>" class="img-thumbnail thumbnail" onclick="changeImage(this)" style="width: 80px; height: 80px; object-fit: cover;">
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -27,7 +65,7 @@ include 'header.php';
             <!-- Product Info -->
             <div class="col-lg-6">
                 <div class="product-info">
-                    <h1 class="product-title mb-3">Modern Velvet Accent Chair</h1>
+                    <h1 class="product-title mb-3"><?php echo htmlspecialchars($product['product_name']); ?></h1>
 
                     <!-- Rating -->
                     <div class="rating mb-3">
@@ -43,43 +81,47 @@ include 'header.php';
 
                     <!-- Price -->
                     <div class="price mb-3">
-                        <span class="current-price h2 text-danger">₹12,999</span>
-                        <span class="original-price text-muted text-decoration-line-through ms-2">₹18,499</span>
-                        <span class="badge bg-success ms-2">30% OFF</span>
+                        <span class="current-price h2 text-danger">₹<?php echo number_format($product['price'], 2); ?></span>
+                        <?php if (!empty($product['original_price'])): ?>
+                            <span class="original-price text-muted text-decoration-line-through ms-2">₹<?php echo number_format($product['original_price'], 2); ?></span>
+                            <?php 
+                            $discount = round((($product['original_price'] - $product['price']) / $product['original_price']) * 100);
+                            ?>
+                            <span class="badge bg-success ms-2"><?php echo $discount; ?>% OFF</span>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Short Description -->
                     <p class="product-short-desc mb-4">
-                        Elevate your living space with this luxurious modern accent chair. Featuring premium velvet upholstery,
-                        sturdy wooden legs, and ergonomic design for ultimate comfort and style.
+                        <?php echo !empty($product['short_description']) ? nl2br(htmlspecialchars($product['short_description'])) : htmlspecialchars(substr($product['description'], 0, 150)) . '...'; ?>
                     </p>
 
                     <!-- Product Options -->
                     <div class="product-options mb-4">
                         <!-- Color Selection -->
+                        <?php if (!empty($product['color_options'])): ?>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Color:</label>
                             <div class="color-options d-flex gap-2 flex-wrap">
-                                <input type="radio" class="btn-check" name="color" id="navy" checked>
-                                <label class="btn btn-outline-primary" for="navy">Navy Blue</label>
-
-                                <input type="radio" class="btn-check" name="color" id="grey">
-                                <label class="btn btn-outline-secondary" for="grey">Grey</label>
-
-                                <input type="radio" class="btn-check" name="color" id="pink">
-                                <label class="btn btn-outline-danger" for="pink">Blush Pink</label>
-
-                                <input type="radio" class="btn-check" name="color" id="green">
-                                <label class="btn btn-outline-success" for="green">Emerald</label>
+                                <?php 
+                                $colors = explode(',', $product['color_options']);
+                                foreach ($colors as $index => $color): 
+                                    $color = trim($color);
+                                    $id = "color_" . $index;
+                                ?>
+                                    <input type="radio" class="btn-check" name="color" id="<?php echo $id; ?>" <?php echo $index === 0 ? 'checked' : ''; ?>>
+                                    <label class="btn btn-outline-secondary" for="<?php echo $id; ?>"><?php echo htmlspecialchars($color); ?></label>
+                                <?php endforeach; ?>
                             </div>
                         </div>
+                        <?php endif; ?>
 
                         <!-- Quantity -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Quantity:</label>
                             <div class="quantity-selector d-flex align-items-center">
                                 <button class="btn btn-outline-secondary" onclick="decreaseQuantity()">-</button>
-                                <input type="number" id="quantity" class="form-control mx-2 text-center" value="1" min="1" max="10" style="width: 80px;">
+                                <input type="number" id="quantity" class="form-control mx-2 text-center" value="1" min="1" max="<?php echo filter_var($product['stock'], FILTER_VALIDATE_INT) > 0 ? $product['stock'] : 1; ?>" style="width: 80px;">
                                 <button class="btn btn-outline-secondary" onclick="increaseQuantity()">+</button>
                             </div>
                         </div>
@@ -87,20 +129,37 @@ include 'header.php';
 
                     <!-- Action Buttons -->
                     <div class="action-buttons d-flex gap-3 mb-4">
-                        <button class="btn btn-primary btn-lg flex-grow-1" onclick="addToCart()">
-                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
-                        </button>
-                        <button class="btn btn-outline-danger btn-lg">
-                            <i class="far fa-heart"></i>
+                        <?php if ($product['stock'] > 0): ?>
+                            <button class="btn btn-primary btn-lg flex-grow-1" onclick="addToCart(<?php echo $product['id']; ?>)">
+                                <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                            </button>
+                        <?php else: ?>
+                            <button class="btn btn-secondary btn-lg flex-grow-1" disabled>
+                                <i class="fas fa-shopping-cart me-2"></i>Out of Stock
+                            </button>
+                        <?php endif; ?>
+                        
+                        <button class="btn btn-outline-danger btn-lg wishlist-btn" id="wishlistBtn" onclick="toggleWishlist(<?php echo $product['id']; ?>)" title="<?php echo $is_wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'; ?>">
+                            <i class="<?php echo $is_wishlisted ? 'fas' : 'far'; ?> fa-heart"></i>
                         </button>
                     </div>
 
                     <!-- Product Meta -->
                     <div class="product-meta">
-                        <p><strong>SKU:</strong> CHR-VLV-001</p>
-                        <p><strong>Category:</strong> Living Room, Accent Chairs</p>
-                        <p><strong>Material:</strong> Velvet Fabric, Solid Wood Legs</p>
-                        <p><strong>Availability:</strong> <span class="text-success">In Stock</span></p>
+                        <?php if (!empty($product['sku'])): ?>
+                            <p><strong>SKU:</strong> <?php echo htmlspecialchars($product['sku']); ?></p>
+                        <?php endif; ?>
+                        <p><strong>Category:</strong> <?php echo ucfirst(htmlspecialchars($product['category'])); ?></p>
+                        <?php if (!empty($product['material'])): ?>
+                            <p><strong>Material:</strong> <?php echo htmlspecialchars($product['material']); ?></p>
+                        <?php endif; ?>
+                        <p><strong>Availability:</strong> 
+                            <?php if ($product['stock'] > 0): ?>
+                                <span class="text-success">In Stock (<?php echo $product['stock']; ?> available)</span>
+                            <?php else: ?>
+                                <span class="text-danger">Out of Stock</span>
+                            <?php endif; ?>
+                        </p>
                         <p><strong>Delivery:</strong> Free delivery within 7-10 business days</p>
                     </div>
                 </div>
@@ -133,10 +192,7 @@ include 'header.php';
                     <div class="tab-pane fade show active" id="description">
                         <h3>Product Description</h3>
                         <p>
-                            Transform your living space with our Modern Velvet Accent Chair. This stunning piece combines
-                            contemporary design with timeless elegance, making it the perfect addition to any room.
-                            The luxurious velvet upholstery provides a soft, comfortable seating experience while adding
-                            a touch of sophistication to your home décor.
+                            <?php echo nl2br(htmlspecialchars($product['description'])); ?>
                         </p>
                         <h5>Key Features:</h5>
                         <ul>
@@ -164,48 +220,24 @@ include 'header.php';
                         <table class="table table-striped">
                             <tbody>
                                 <tr>
-                                    <td><strong>Dimensions (L x W x H)</strong></td>
-                                    <td>70 cm x 65 cm x 85 cm</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Seat Height</strong></td>
-                                    <td>45 cm</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Seat Depth</strong></td>
-                                    <td>50 cm</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Backrest Height</strong></td>
-                                    <td>40 cm</td>
+                                    <td><strong>Dimensions</strong></td>
+                                    <td><?php echo !empty($product['dimensions']) ? htmlspecialchars($product['dimensions']) : 'N/A'; ?></td>
                                 </tr>
                                 <tr>
                                     <td><strong>Weight</strong></td>
-                                    <td>12 kg</td>
+                                    <td><?php echo !empty($product['weight']) ? htmlspecialchars($product['weight']) : 'N/A'; ?></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Weight Capacity</strong></td>
-                                    <td>120 kg</td>
+                                    <td><strong>Material</strong></td>
+                                    <td><?php echo !empty($product['material']) ? htmlspecialchars($product['material']) : 'N/A'; ?></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Upholstery Material</strong></td>
-                                    <td>Premium Velvet Fabric</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Frame Material</strong></td>
-                                    <td>Solid Wood</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Cushion Fill</strong></td>
-                                    <td>High-Density Foam</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Leg Finish</strong></td>
-                                    <td>Natural Wood / Gold Metal</td>
+                                    <td><strong>Category</strong></td>
+                                    <td><?php echo ucfirst(htmlspecialchars($product['category'])); ?></td>
                                 </tr>
                                 <tr>
                                     <td><strong>Assembly Required</strong></td>
-                                    <td>Yes (Easy assembly, tools included)</td>
+                                    <td>Yes (Included instructions)</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Warranty</strong></td>
@@ -432,17 +464,35 @@ include 'header.php';
         }
 
         // Add to cart function
-        function addToCart() {
+        function addToCart(productId) {
             const quantity = document.getElementById('quantity').value;
-            const selectedColor = document.querySelector('input[name="color"]:checked').nextElementSibling.textContent;
+            let selectedColor = '';
+            
+            const colorOption = document.querySelector('input[name="color"]:checked');
+            if(colorOption) {
+                selectedColor = colorOption.nextElementSibling.textContent;
+            }
 
-            // Show success notification
-            showNotification(`Added ${quantity} item(s) in ${selectedColor} to cart!`);
-
-            // Here you would typically send this data to your backend
-            console.log('Added to cart:', {
-                quantity: quantity,
-                color: selectedColor
+            $.ajax({
+                url: 'backend/cart_action.php',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    action: 'add',
+                    id: productId,
+                    qty: quantity,
+                    color: selectedColor
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showNotification(response.message || 'Added to cart');
+                    } else {
+                        alert(response.message || 'Failed to add item');
+                    }
+                },
+                error: function() {
+                    alert('Something went wrong. Please try again.');
+                }
             });
         }
 
@@ -498,6 +548,58 @@ include 'header.php';
             const firstThumbnail = document.querySelector('.thumbnail');
             if (firstThumbnail) {
                 firstThumbnail.style.borderColor = '#0d6efd';
+            }
+        });
+
+        // Wishlist toggle
+        function toggleWishlist(productId) {
+            $.ajax({
+                url: 'backend/wishlist_action.php',
+                type: 'POST',
+                dataType: 'json',
+                data: { action: 'toggle', product_id: productId },
+                success: function(response) {
+                    if (response.login_required) {
+                        window.location.href = 'login.php';
+                        return;
+                    }
+                    if (response.success) {
+                        const btn = document.getElementById('wishlistBtn');
+                        const icon = btn.querySelector('i');
+                        if (response.action === 'added') {
+                            icon.classList.remove('far');
+                            icon.classList.add('fas');
+                            btn.title = 'Remove from Wishlist';
+                            btn.classList.remove('btn-outline-danger');
+                            btn.classList.add('btn-danger');
+                        } else {
+                            icon.classList.remove('fas');
+                            icon.classList.add('far');
+                            btn.title = 'Add to Wishlist';
+                            btn.classList.remove('btn-danger');
+                            btn.classList.add('btn-outline-danger');
+                        }
+                        // Animate
+                        btn.style.transform = 'scale(1.3)';
+                        setTimeout(() => btn.style.transform = 'scale(1)', 200);
+                        showNotification(response.message);
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    alert('Something went wrong. Please try again.');
+                }
+            });
+        }
+
+        // Set initial filled state
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('wishlistBtn');
+            const icon = btn.querySelector('i');
+            if (icon.classList.contains('fas')) {
+                btn.classList.remove('btn-outline-danger');
+                btn.classList.add('btn-danger');
             }
         });
 

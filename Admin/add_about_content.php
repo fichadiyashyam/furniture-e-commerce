@@ -1,0 +1,120 @@
+<?php 
+include 'header.php'; 
+include '../config/db_config.php';
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['section_name'])) {
+    $section_name = mysqli_real_escape_string($connection, $_POST['section_name']);
+    $title = mysqli_real_escape_string($connection, $_POST['title']);
+    $description = mysqli_real_escape_string($connection, $_POST['description']);
+    $link = mysqli_real_escape_string($connection, $_POST['link']);
+    
+    // Check if section name already exists
+    $check_query = "SELECT id FROM about_content WHERE section_name = '$section_name'";
+    $check_result = mysqli_query($connection, $check_query);
+    
+    if (mysqli_num_rows($check_result) > 0) {
+        $error = "A section with this Section Identifier already exists. Please edit it instead or use a different unique identifier.";
+    } else {
+        $image = '';
+        if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
+            $allowed = array("jpg", "jpeg", "png", "gif");
+            $file_name = $_FILES['image']['name'];
+            $file_tmp = $_FILES['image']['tmp_name'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+            if (in_array($file_ext, $allowed)) {
+                if (!is_dir('../images/')) {
+                    mkdir('../images/', 0777, true);
+                }
+                $new_file_name = "about_" . time() . "." . $file_ext;
+                if (move_uploaded_file($file_tmp, "../images/" . $new_file_name)) {
+                    $image = $new_file_name;
+                } else {
+                    $error = "Failed to upload image.";
+                }
+            } else {
+                $error = "Invalid image format. Only JPG, JPEG, PNG, GIF are allowed.";
+            }
+        }
+
+        if (!isset($error)) {
+            $insert_query = "INSERT INTO about_content (section_name, title, description, image, link) 
+                             VALUES ('$section_name', '$title', '$description', '$image', '$link')";
+            if (mysqli_query($connection, $insert_query)) {
+                echo "<script>window.location.href='about_content.php?msg=" . urlencode("Content added successfully") . "';</script>";
+                exit();
+            } else {
+                $error = "Failed to add content. " . mysqli_error($connection);
+            }
+        }
+    }
+}
+?>
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0 text-gray-800">Add About Content Section</h2>
+        <a href="about_content.php" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Listing
+        </a>
+    </div>
+
+    <!-- CENTERED FORM LIKE ADD PRODUCT -->
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Content Details</h6>
+                </div>
+                <div class="card-body p-4">
+                    <?php if (isset($error)) { echo "<div class='alert alert-danger'>$error</div>"; } ?>
+
+                    <form action="" method="POST" enctype="multipart/form-data">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Section Identifier <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="section_name" required 
+                                placeholder="e.g. hero, team_1, testimonial_1, feature_1">
+                            <small class="text-muted">This must be a unique identifier used by the page to place this block correctly.</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Title / Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="title" required 
+                                placeholder="e.g. About Us, John Doe, Fast Shipping">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Subtitle / Position / Link (Optional)</label>
+                            <input type="text" class="form-control" name="link" 
+                                placeholder="e.g. CEO / Founder, or URL if button link">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description / Quote (Optional)</label>
+                            <textarea class="form-control" name="description" rows="5" 
+                                placeholder="Enter the main paragraph text or testimonial quote here..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Image / Photo (Optional)</label>
+                            <input class="form-control" type="file" name="image" accept="image/*">
+                            <small class="text-muted">Upload a person profile picture, icon, or background image.</small>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i> Save Content
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php 
+mysqli_close($connection);
+include 'footer.php'; 
+?>

@@ -5,6 +5,7 @@
 * Template URI: https://untree.co/
 * License: https://creativecommons.org/licenses/by/3.0/
 */ -->
+<?php if (session_status() === PHP_SESSION_NONE) { session_start(); } ?>
 <!doctype html>
 <html lang="en">
 
@@ -56,9 +57,10 @@
 							class="nav-link" href="contact.php">Contact us</a></li>
 				</ul>
 
-				<ul class="custom-navbar-cta navbar-nav mb-2 mb-md-0 ms-5">
+				<ul class="custom-navbar-cta navbar-nav mb-2 mb-md-0 ms-5=">
 					<li class="nav-item <?php echo (isset($page) && $page == 'login') ? 'active' : ''; ?>"><a
 							class="nav-link" href="login.php"><img src="images/user.svg"></a></li>
+					<li class="nav-item"><a class="nav-link" href="profile.php#wishlist" onclick="<?php echo (!empty($_SESSION['is_logged_in'])) ? '' : "window.location.href='login.php'; return false;"; ?>"><i class="fas fa-heart" style="font-size: 18px; color: rgba(255,255,255,0.5); transition: .3s;"></i></a></li>
 					<li class="nav-item <?php echo (isset($page) && $page == 'cart') ? 'active' : ''; ?>"><a
 							class="nav-link" href="cart.php"><img src="images/cart.svg"></a></li>
 				</ul>

@@ -121,9 +121,14 @@
                                 <span class="status-badge status-active">Approved</span>
                             </td>
                             <td>
-                                <a href="#" class="action-icon"><i class="fas fa-eye"></i></a>
-                                <a href="#" class="action-icon"><i class="fas fa-edit"></i></a>
-                                <a href="#" class="action-icon text-danger"><i class="fas fa-trash"></i></a>
+                               <div class="btn-group" role="group">
+                                            <a href="edit_blog_content.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="delete_blog_content.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-outline-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this section?');">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
                             </td>
                         </tr>
 
